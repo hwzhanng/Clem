@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VECTOR // CLEMENTINE LAB</title>
+    
+    <!-- 1. 引入 React 和 Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 2. 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+
+    <!-- 3. Tailwind 配置 -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['"JetBrains Mono"', 'monospace'],
+              sans: ['"Space Grotesk"', 'sans-serif'],
+            },
+            colors: {
+              'eng-black': '#050505',
+              'eng-dark': '#0a0a0a',
+              'eng-accent': '#FF3300', 
+              'eng-dim': '#333333',
+              'eng-text': '#E0E0E0',
+              'cyan-acid': '#00F0FF',
+              'term-green': '#0f0',
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(to right, #1a1a1a 1px, transparent 1px), linear-gradient(to bottom, #1a1a1a 1px, transparent 1px)",
+            },
+            animation: {
+              'cursor-blink': 'blink 1s step-end infinite',
+              'scanline': 'scanline 10s linear infinite',
+            },
+            keyframes: {
+              blink: {
+                '0%, 100%': { opacity: '1' },
+                '50%': { opacity: '0' },
+              },
+              scanline: {
+                '0%': { bottom: '100%' },
+                '100%': { bottom: '-100%' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- 4. 自定义 CSS -->
+    <style>
+      body {
+        background-color: #050505;
+        color: #E0E0E0;
+        overflow-x: hidden;
+        cursor: crosshair;
+      }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #0a0a0a; }
+      ::-webkit-scrollbar-thumb { background: #333; }
+      ::-webkit-scrollbar-thumb:hover { background: #FF3300; }
+
+      .scanline {
+        width: 100%;
+        height: 100px;
+        z-index: 9999;
+        background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 51, 0, 0.02) 50%, rgba(0,0,0,0) 100%);
+        opacity: 0.1;
+        position: fixed;
+        bottom: 100%;
+        animation: scanline 10s linear infinite;
+        pointer-events: none;
+      }
+      
+      ::selection { background: #FF3300; color: #000; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <div class="scanline"></div>
+
+    <!-- 5. React 应用逻辑 -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 1. Constants & Data ---
+        const Page = {
+            HOME: 'HOME',
+            PROJECTS: 'PROJECTS',
+            BLOG: 'BLOG'
+        };
+
+        const PROFILE = {
+            id: 'Clementine',
+            status: 'UNDERGRAD_YEAR_2',
+            school: 'CAU (China Agricultural Univ.)',
+            major: 'MECHATRONICS_ENG',
+            vision: 'EMBODIED_AI_SPECIALIST',
+            sci_count: 2
+        };
+
+        const PROJECTS = [
+            {
+                id: 'P-01',
+                title: 'CATCH_IT_REPLICATION',
+                category: 'REINFORCEMENT_LEARNING',
+                description: '基于 MuJoCo 的机器人抓取强化学习复现。深入研究 Sim-to-Real 基础逻辑，解决复杂物理仿真环境配置与依赖冲突。',
+                techStack: ['Python', 'MuJoCo', 'RL', 'Sim2Real'],
+                imageUrl: 'https://picsum.photos/800/600?grayscale',
+                year: '2025 (ONGOING)',
+                progress: 65,
+                stats: [
+                    { label: 'ENV', value: 'MUJOCO' },
+                    { label: 'ALGO', value: 'PPO/SAC' },
+                    { label: 'STATUS', value: 'DEBUGGING' }
+                ]
+            },
+            {
+                id: 'P-02',
+                title: 'VISUAL_NAV_SYSTEM',
+                category: 'COMPUTER_VISION',
+                description: '基于 YOLO 的实时目标检测与路径规划系统，应用于非结构化农业环境中的自动导航。',
+                techStack: ['YOLO', 'ROS', 'OpenCV', 'C++'],
+                imageUrl: 'https://picsum.photos/800/601?grayscale',
+                year: '2024',
+                stats: [
+                    { label: 'mAP', value: '94.5%' },
+                    { label: 'FPS', value: '60+' },
+                    { label: 'LATENCY', value: '15ms' }
+                ]
+            },
+            {
+                id: 'P-03',
+                title: 'BIO_MIMETIC_LIMB',
+                category: 'HARDWARE',
+                description: '模仿节肢动物结构的机械肢体原型，探索生物进化逻辑在机械结构中的映射。',
+                techStack: ['SolidWorks', 'Embedded C', '3D Print'],
+                imageUrl: 'https://picsum.photos/800/602?grayscale',
+                year: '2023',
+                stats: [
+                    { label: 'DOF', value: '6' },
+                    { label: 'PAYLOAD', value: '2.5KG' },
+                    { label: 'MAT', value: 'PLA/CF' }
+                ]
+            }
+        ];
+
+        const BLOG_POSTS = [
+            {
+                id: 'b1',
+                title: '具身智能：进化的终点是机械吗？',
+                date: '2025-10-15',
+                readTime: '12 min',
+                excerpt: '探讨 Embodied AI 的终极形态。为什么我认为智能不仅是算法的堆砌，更是机械躯体与环境互动的有机适应。',
+                tags: ['PHILOSOPHY', 'EVOLUTION', 'AI'],
+            },
+            {
+                id: 'b2',
+                title: 'MuJoCo 物理仿真踩坑实录',
+                date: '2025-11-02',
+                readTime: '8 min',
+                excerpt: '在 Catch_It 复现过程中遇到的依赖库冲突与物理参数调优心得。Sim-to-Real 的鸿沟比想象中更深。',
+                tags: ['TECH', 'ROBOTICS', 'DEBUG'],
+            },
+            {
+                id: 'b3',
+                title: '从微积分到强化学习：工科生的数学救赎',
+                date: '2025-09-01',
+                readTime: '6 min',
+                excerpt: '直面数学短板。如何通过建立直观的物理模型来理解抽象的线性代数与优化算法。理性与客观的自我驱动之路。',
+                tags: ['GROWTH', 'MATH', 'LEARNING'],
+            }
+        ];
+
+        // --- 2. Services (Terminal Logic) ---
+        const processCommand = async (command) => {
+            const cmd = command.trim().toLowerCase();
+            await new Promise(resolve => setTimeout(resolve, 400)); // 模拟延迟
+
+            switch (cmd) {
+                case 'help':
+                    return {
+                        type: 'output',
+                        text: `AVAILABLE COMMANDS // 可用指令:\n-----------------------------\n> whoami    : Identity Profile (身份档案)\n> skills    : Tech Stack Matrix (技术栈)\n> vision    : Philosophy & Goal (愿景)\n> projects  : List Current Missions (项目)\n> sci       : Academic Achievements (论文)\n> contact   : Comm Channels (联系方式)\n> clear     : Clear Buffer (清屏)`
+                    };
+                case 'ls':
+                case 'projects':
+                    const projectList = PROJECTS.map(p => `[${p.id}] ${p.title} // ${p.category}`).join('\n');
+                    return {
+                        type: 'success',
+                        text: `ACTIVE MISSIONS (PROJECTS):\n${projectList}\n\nTOTAL UNITS: ${PROJECTS.length}`
+                    };
+                case 'sci':
+                    return {
+                        type: 'success',
+                        text: `ACADEMIC_OUTPUT // 学术成果:\n---------------------------\n[1] SCI PAPER (1st Author) :: PENDING_REVIEW\n[2] SCI PAPER (2nd Author) :: PUBLISHED\n---------------------------\nSTATUS: CONTINUOUS_OPTIMIZATION`
+                    };
+                case 'whoami':
+                    return {
+                        type: 'output',
+                        text: `IDENTITY_CARD // 身份验证:\n--------------------------\nID     : ${PROFILE.id}\nSCHOOL : ${PROFILE.school}\nYEAR   : ${PROFILE.status} (2025 Fall)\nMAJOR  : ${PROFILE.major}\nTRAITS : [RATIONAL] [SELF-DRIVEN] [EVOLUTIONARY]`
+                    };
+                case 'skills':
+                    return {
+                        type: 'output',
+                        text: `NEURAL_NET_CONFIG // 核心技能:\n---------------------------\nLANG   : C (Fundamental), Python (Advanced)\nCORE   : Calculus, Linear Algebra\nTOOLS  : YOLO, MuJoCo, ROS\nFOCUS  : Sim-to-Real, Embodied AI`
+                    };
+                case 'vision':
+                case 'philosophy':
+                    return {
+                        type: 'system',
+                        text: `PHILOSOPHY_LOG // 核心思想:\n--------------------------\n"Embodied Intelligence should mimic biological evolution."\n具身智能的终极形态应当参考生物进化的逻辑——\n不仅仅是代码的堆砌，更是机械躯体与智能大脑的有机适应。`
+                    };
+                case 'sudo':
+                    return { type: 'error', text: `ACCESS_DENIED.\nYOU ARE NOT ROOT.\nCLEMENTINE IS WATCHING.` };
+                case 'contact':
+                    return { type: 'success', text: `LINK_ESTABLISHED:\n> MAIL : clementine@cau.edu.cn (Simulated)\n> GITHUB : github.com/clementine-bot\n> LOC    : BEIJING, CN` };
+                case 'status':
+                    return { type: 'output', text: `SYSTEM: ONLINE\nMENTAL_STATE: RATIONAL\nMATH_MODULE: UPGRADING...\nEVOLUTION: IN_PROGRESS` };
+                case 'clear':
+                    return { type: 'system', text: 'CLEAR' };
+                case '':
+                    return { type: 'output', text: '' };
+                default:
+                    return { type: 'error', text: `UNKNOWN_CMD: '${cmd}'. TRY 'help'.` };
+            }
+        };
+
+        // --- 3. Components ---
+
+        const GlitchText = ({ text, className = '', as = 'span' }) => {
+            const Tag = as;
+            return (
+                <Tag className={`relative inline-block group cursor-default ${className}`}>
+                    <span className="relative z-10 group-hover:translate-x-[-2px] transition-transform duration-75">{text}</span>
+                    <span className="absolute top-0 left-0 -z-10 w-full h-full text-eng-accent opacity-0 group-hover:opacity-70 group-hover:translate-x-[2px] group-hover:skew-x-12 transition-all duration-75 select-none">{text}</span>
+                    <span className="absolute top-0 left-0 -z-10 w-full h-full text-cyan-acid opacity-0 group-hover:opacity-70 group-hover:translate-x-[-2px] group-hover:-skew-x-12 transition-all duration-75 select-none">{text}</span>
+                </Tag>
+            );
+        };
+
+        const Header = ({ currentPage, setPage }) => {
+            const navItems = [
+                { label: '00_中控 // HOME', value: Page.HOME },
+                { label: '01_项目 // PROJECTS', value: Page.PROJECTS },
+                { label: '02_日志 // LOGS', value: Page.BLOG },
+            ];
+            return (
+                <header className="fixed top-0 left-0 w-full z-50 bg-eng-black/90 backdrop-blur-md border-b border-eng-dim h-16 flex items-center justify-between px-6 md:px-12">
+                    <div className="font-mono font-bold text-lg md:text-xl tracking-tighter cursor-pointer text-eng-text hover:text-eng-accent transition-colors flex items-center gap-2" onClick={() => setPage(Page.HOME)}>
+                        <span className="w-2 h-2 bg-eng-accent animate-pulse"></span>
+                        CLEMENTINE<span className="text-eng-dim">_</span>LAB
+                    </div>
+                    <nav className="hidden md:flex space-x-8">
+                        {navItems.map((item) => (
+                            <button key={item.value} onClick={() => setPage(item.value)} className={`font-mono text-xs tracking-widest transition-all duration-200 relative group px-2 py-1 ${currentPage === item.value ? 'text-eng-accent' : 'text-gray-500 hover:text-white'}`}>
+                                {item.label}
+                                {currentPage === item.value && <span className="absolute top-0 right-0 -mt-1 -mr-1 w-1.5 h-1.5 bg-eng-accent shadow-[0_0_8px_#FF3300]"></span>}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="md:hidden font-mono text-xs text-eng-accent border border-eng-accent px-2 py-1">SYS_MENU</div>
+                </header>
+            );
+        };
+
+        const ProjectCard = ({ project }) => {
+            const [isHovered, setIsHovered] = useState(false);
+            return (
+                <div className="relative group border border-eng-dim bg-eng-dark overflow-hidden hover:border-eng-accent transition-colors duration-500 flex flex-col" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+                    <div className="flex justify-between items-center p-3 border-b border-eng-dim bg-eng-black text-[10px] font-mono text-gray-500 uppercase">
+                        <span>ID: {project.id}</span>
+                        <span className="text-cyan-acid">{project.category}</span>
+                        <span className={`w-2 h-2 rounded-full ${isHovered ? 'bg-eng-accent animate-pulse' : 'bg-gray-800'}`}></span>
+                    </div>
+                    <div className="relative aspect-video overflow-hidden">
+                        <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700 filter grayscale group-hover:grayscale-0" />
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48cGF0aCBkPSJNMCA0MEw0MCAwSDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjEpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-20 pointer-events-none"></div>
+                        <div className={`absolute inset-0 bg-eng-black/95 flex flex-col justify-center px-6 transition-transform duration-300 ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                                {project.stats.map((stat, i) => (
+                                    <div key={i} className="text-center border border-eng-dim p-2">
+                                        <div className="text-[9px] text-gray-500 mb-1">{stat.label}</div>
+                                        <div className="text-cyan-acid font-mono text-xs">{stat.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {project.techStack.map((tech) => <span key={tech} className="text-[10px] border border-eng-text/30 px-2 py-1 text-eng-text font-mono">{tech}</span>)}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-5 border-t border-eng-dim flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                                <GlitchText text={project.title} as="h3" className="font-sans text-lg font-bold text-white break-all" />
+                            </div>
+                            <p className="font-mono text-xs text-gray-400 leading-relaxed mb-4">{project.description}</p>
+                        </div>
+                        <div>
+                            {project.progress && (
+                                <div className="mb-2">
+                                    <div className="flex justify-between text-[9px] font-mono text-gray-500 mb-1"><span>PROGRESS</span><span>{project.progress}%</span></div>
+                                    <div className="w-full h-1 bg-gray-800"><div className="h-full bg-eng-accent" style={{ width: `${project.progress}%` }}></div></div>
+                                </div>
+                            )}
+                            <div className="font-mono text-[10px] text-right text-gray-600">YEAR: {project.year}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const BotInterface = () => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [input, setInput] = useState('');
+            const [logs, setLogs] = useState([]);
+            const [isBooting, setIsBooting] = useState(false);
+            const bottomRef = useRef(null);
+            const inputRef = useRef(null);
+
+            useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs, isBooting]);
+            useEffect(() => {
+                if (isOpen && !isBooting) {
+                    if (logs.length === 0) runBootSequence();
+                    else setTimeout(() => inputRef.current?.focus(), 100);
+                }
+            }, [isOpen]);
+
+            const runBootSequence = async () => {
+                setIsBooting(true);
+                const bootText = ["INITIALIZING KERNEL...", "LOADING ASSETS...", "MOUNTING VIRTUAL DRIVE...", "SYSTEM READY."];
+                for (const line of bootText) {
+                    await new Promise(r => setTimeout(r, 400));
+                    setLogs(prev => [...prev, { type: 'system', content: line }]);
+                }
+                setLogs(prev => [...prev, { type: 'success', content: "WELCOME TO VECTOR_TERMINAL v2.0. TYPE 'help' TO START." }]);
+                setIsBooting(false);
+                setTimeout(() => inputRef.current?.focus(), 100);
+            };
+
+            const handleCommand = async () => {
+                if (!input.trim()) return;
+                const cmd = input;
+                setInput('');
+                setLogs(prev => [...prev, { type: 'input', content: cmd }]);
+                const response = await processCommand(cmd);
+                if (response.text === 'CLEAR') setLogs([]);
+                else if (response.text) setLogs(prev => [...prev, { type: response.type, content: response.text }]);
+            };
+
+            const getColor = (type) => {
+                switch (type) {
+                    case 'input': return 'text-white';
+                    case 'error': return 'text-red-500';
+                    case 'success': return 'text-eng-accent';
+                    case 'system': return 'text-gray-500';
+                    default: return 'text-cyan-acid';
+                }
+            };
+
+            return (
+                <div className={`fixed z-50 transition-all duration-500 ease-in-out ${isOpen ? 'bottom-0 right-0 w-full md:w-[600px] h-[60vh] md:h-[500px]' : 'bottom-6 right-6 w-auto h-auto'}`}>
+                    {isOpen && (
+                        <div className="w-full h-full bg-black/95 border-t-2 md:border-2 border-eng-accent md:rounded-tl-lg shadow-[0_0_40px_rgba(255,51,0,0.2)] flex flex-col overflow-hidden backdrop-blur-md font-mono">
+                            <div className="h-8 bg-eng-accent/20 border-b border-eng-accent/50 flex items-center justify-between px-3 select-none">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span className="ml-2 text-[10px] text-eng-accent font-bold tracking-wider">ROOT@VECTOR:~</span>
+                                </div>
+                                <button onClick={() => setIsOpen(false)} className="text-eng-accent hover:text-white text-xs">[MINIMIZE]</button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-eng-accent scrollbar-track-black" onClick={() => inputRef.current?.focus()}>
+                                {logs.map((log, idx) => (
+                                    <div key={idx} className={`text-xs md:text-sm whitespace-pre-wrap font-mono ${getColor(log.type)}`}>
+                                        {log.type === 'input' && <span className="opacity-50 mr-2">$</span>}{log.content}
+                                    </div>
+                                ))}
+                                {isBooting && <div className="text-eng-accent text-xs animate-pulse">_</div>}
+                                <div ref={bottomRef} />
+                            </div>
+                            {!isBooting && (
+                                <div className="p-3 bg-eng-dim/10 border-t border-eng-accent/20 flex items-center gap-2">
+                                    <span className="text-eng-accent text-sm font-bold">{'>'}</span>
+                                    <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCommand()} className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm caret-eng-accent" autoComplete="off" spellCheck="false" autoFocus />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {!isOpen && (
+                        <button onClick={() => setIsOpen(true)} className="group relative flex items-center justify-center">
+                            <div className="absolute inset-0 bg-eng-accent/20 rounded-none blur-sm group-hover:blur-md transition-all duration-500 animate-pulse"></div>
+                            <div className="relative bg-black border border-eng-accent w-14 h-14 flex items-center justify-center hover:bg-eng-accent hover:text-black transition-all duration-300 group-hover:rotate-90">
+                                <span className="font-mono font-bold text-xl">{'>_'}</span>
+                            </div>
+                            <div className="absolute right-16 bg-eng-accent text-black text-xs font-bold px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-mono">LAUNCH_TERMINAL</div>
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState(Page.HOME);
+            const [mounted, setMounted] = useState(false);
+            useEffect(() => { setMounted(true); }, []);
+
+            const renderContent = () => {
+                switch (currentPage) {
+                    case Page.HOME:
+                        return (
+                            <div className="min-h-screen pt-24 px-6 md:px-12 lg:px-20 pb-20 relative flex flex-col lg:flex-row gap-12">
+                                <div className="flex-1 flex flex-col justify-center z-10">
+                                    <div className="mb-6 flex items-center gap-3">
+                                        <div className="px-2 py-0.5 bg-eng-accent/10 border border-eng-accent text-eng-accent text-[10px] font-mono tracking-widest">SYSTEM ONLINE</div>
+                                        <span className="font-mono text-xs text-gray-500">CAU // MECHATRONICS</span>
+                                    </div>
+                                    <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] mb-8">
+                                        EMBODIED <br />
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-700">INTELLIGENCE</span> <br />
+                                        <GlitchText text="EVOLUTION" className="text-eng-accent" />
+                                    </h1>
+                                    <div className="border-l-2 border-eng-dim pl-6 mb-10 max-w-xl">
+                                        <p className="font-mono text-sm md:text-base text-gray-300 leading-relaxed mb-4">
+                                            <span className="text-eng-accent font-bold">跨学科视角 //</span> 具身智能的终极形态应当参考生物进化的逻辑。不仅仅是代码的堆砌，更是机械躯体与智能大脑的有机适应。
+                                        </p>
+                                        <p className="font-mono text-xs text-gray-500">"Embodied Intelligence should not just be a stack of code, but an organic adaptation between the mechanical body and the intelligent mind."</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-4">
+                                        <button onClick={() => setCurrentPage(Page.PROJECTS)} className="bg-white text-black font-mono font-bold px-6 py-3 hover:bg-eng-accent hover:text-white transition-all duration-300 flex items-center gap-2 text-sm">[VIEW_PROJECTS]</button>
+                                        <button onClick={() => setCurrentPage(Page.BLOG)} className="border border-gray-700 text-gray-400 font-mono px-6 py-3 hover:border-eng-accent hover:text-eng-accent transition-all duration-300 text-sm">READ_LOGS</button>
+                                    </div>
+                                </div>
+                                <div className="flex-1 lg:max-w-md flex flex-col gap-4 z-10 mt-10 lg:mt-0">
+                                    <div className="border border-eng-dim bg-eng-dark/50 backdrop-blur-sm p-6 relative overflow-hidden group hover:border-eng-accent transition-colors">
+                                        <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                                            <svg className="w-12 h-12 text-eng-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                        </div>
+                                        <div className="font-mono text-[10px] text-gray-500 mb-4 flex justify-between"><span>USER_PROFILE</span><span>ID: {PROFILE.id}</span></div>
+                                        <div className="space-y-3">
+                                            <div><div className="text-[10px] text-gray-500">STATUS</div><div className="text-white font-mono text-sm">{PROFILE.status}</div></div>
+                                            <div><div className="text-[10px] text-gray-500">AFFILIATION</div><div className="text-white font-mono text-sm">{PROFILE.school}</div></div>
+                                            <div><div className="text-[10px] text-gray-500">MAJOR</div><div className="text-cyan-acid font-mono text-sm">{PROFILE.major}</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="border border-eng-dim bg-eng-dark/50 p-4 hover:bg-eng-accent/5 transition-colors">
+                                            <div className="text-[10px] text-gray-500 mb-1">SCI PAPERS</div>
+                                            <div className="text-3xl font-mono font-bold text-white flex items-baseline gap-2">{PROFILE.sci_count}<span className="text-[10px] font-normal text-eng-accent animate-pulse">ACTIVE</span></div>
+                                        </div>
+                                        <div className="border border-eng-dim bg-eng-dark/50 p-4 hover:bg-eng-accent/5 transition-colors">
+                                            <div className="text-[10px] text-gray-500 mb-1">VISION</div>
+                                            <div className="text-xs font-mono text-white leading-tight">ROBOTICS & <br/> <span className="text-cyan-acid">EMBODIED AI</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="border border-eng-dim bg-black p-4 font-mono text-xs h-48 overflow-hidden relative">
+                                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                                        <div className="text-gray-500 border-b border-gray-800 pb-2 mb-2">SKILL_MATRIX_LOADER.exe</div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between"><span className="text-gray-400">LANG::C</span> <span className="text-green-500">[FOUNDATION]</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">LANG::PYTHON</span> <span className="text-eng-accent animate-pulse">[LEARNING...]</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">MATH::CALCULUS</span> <span className="text-white">[OK]</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">MATH::LIN_ALG</span> <span className="text-white">[OK]</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">ENV::MUJOCO</span> <span className="text-cyan-acid">[ADVANCED]</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">ENV::ROS</span> <span className="text-white">[ACTIVE]</span></div>
+                                            <div className="mt-2 text-[10px] text-gray-600">>> OPTIMIZING SELF-DRIVEN KERNEL...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-eng-accent/5 rounded-full blur-[120px] pointer-events-none"></div>
+                            </div>
+                        );
+                    case Page.PROJECTS:
+                        return (
+                            <div className="pt-28 px-6 md:px-12 lg:px-20 pb-20">
+                                <div className="flex justify-between items-end mb-12 border-b border-eng-dim pb-4">
+                                    <div><span className="font-mono text-eng-accent text-xs block mb-2">01 // ARCHIVE</span><h2 className="text-4xl md:text-5xl font-sans font-bold text-white">PROJECT_INDEX</h2></div>
+                                    <div className="hidden md:block font-mono text-xs text-gray-500 text-right"><div className="text-eng-accent">PRIORITY: CATCH_IT_REPLICATION</div><div>LOADING ASSETS... 100%</div></div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{PROJECTS.map((project, index) => <ProjectCard key={project.id} project={project} index={index} />)}</div>
+                            </div>
+                        );
+                    case Page.BLOG:
+                        return (
+                            <div className="pt-28 px-6 md:px-12 lg:px-20 pb-20 max-w-6xl mx-auto">
+                                <div className="mb-12 flex flex-col md:flex-row justify-between md:items-end border-b border-eng-dim pb-6">
+                                    <div><span className="font-mono text-eng-accent text-xs block mb-2">02 // THOUGHT_PROCESS</span><h2 className="text-4xl md:text-5xl font-sans font-bold text-white">ENGINEERING_LOGS</h2></div>
+                                    <p className="text-gray-500 font-mono text-xs mt-4 md:mt-0 max-w-xs">Recording the journey from biological inspiration to mechanical realization.</p>
+                                </div>
+                                <div className="grid gap-6">
+                                    {BLOG_POSTS.map((post, index) => (
+                                        <div key={post.id} className="group border border-eng-dim bg-eng-dark/30 p-6 md:p-8 hover:border-eng-accent hover:bg-eng-dark transition-all duration-300 cursor-pointer relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-1 h-full bg-eng-accent transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
+                                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-3"><span className="font-mono text-xs text-cyan-acid bg-cyan-acid/10 px-2 py-0.5 border border-cyan-acid/30">{post.date}</span><span className="font-mono text-[10px] text-gray-500 uppercase">{post.readTime} READ</span></div>
+                                                    <h3 className="text-2xl font-sans font-bold text-gray-100 group-hover:text-eng-accent transition-colors mb-3">{post.title}</h3>
+                                                    <p className="font-mono text-sm text-gray-400 leading-relaxed mb-4 max-w-3xl">{post.excerpt}</p>
+                                                    <div className="flex gap-2">{post.tags.map(tag => <span key={tag} className="text-[10px] text-gray-500 font-mono before:content-['#']">{tag}</span>)}</div>
+                                                </div>
+                                                <div className="hidden md:flex items-center justify-center w-12 h-12 border border-eng-dim text-gray-600 group-hover:text-white group-hover:border-white transition-all rounded-full"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className={`bg-eng-black min-h-screen text-white bg-grid-pattern bg-[size:40px_40px] transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                    <Header currentPage={currentPage} setPage={setCurrentPage} />
+                    <main className="relative z-10">{renderContent()}</main>
+                    <BotInterface />
+                    <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+                        <div className="absolute top-24 left-6 md:left-12 w-px h-32 bg-gradient-to-b from-transparent via-eng-dim to-transparent"></div>
+                        <div className="absolute bottom-24 right-6 md:right-12 w-px h-32 bg-gradient-to-b from-transparent via-eng-dim to-transparent"></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
